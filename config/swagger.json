@@ -1,0 +1,310 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Plantacle REST API",
+    "description": "",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    { "name": "Authentication", "description": "" },
+    { "name": "Users", "description": "" },
+    { "name": "Device", "description": "" },
+    { "name": "Measurements", "description": "" }
+  ],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "description": "Obtain an access token by posting to /api/auth"
+      }
+    },
+    "schemas": {
+      "MeasurementResult": {
+        "type": "object",
+        "properties": {
+          "temperature": { "type": "number", "example": 19.45 },
+          "humidity": { "type": "number", "example": 40 },
+          "time": { "type": "string", "example": "2019-12-30T21:20:00.000Z" }
+        },
+        "required": ["temperature", "humidity", "time"]
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "5dbc8ca75afd20651c5ac767",
+            "readOnly": true
+          },
+          "email": { "type": "string", "example": "johndoe@example.com" },
+          "password": {
+            "type": "string",
+            "example": "supersecret",
+            "writeOnly": true
+          },
+          "roles": {
+            "example": ["user", "admin"],
+            "readOnly": true,
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "deviceId": {
+            "type": "string",
+            "example": "6546710d8bf6bb1a6ad45f81aaf66a4031698825",
+            "readOnly": true
+          }
+        },
+        "required": ["_id", "email", "password", "roles"]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "johndoe@example.com",
+            "description": "email of the user you want to login as"
+          },
+          "password": {
+            "type": "string",
+            "example": "supersecret",
+            "description": "Password of the user you want to login as"
+          },
+          "rememberMe": {
+            "type": "boolean",
+            "example": false,
+            "description": "Makes the token have a longer expiry time"
+          }
+        },
+        "required": ["email", "password"]
+      },
+      "AccessTokenDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImpvaG5kb2UiLCJzdWIiOiI1ZDM1ZDczZmU0YTY3NzVmYjQxZmE0ZjEiLCJpYXQiOjE1NjM5MTU0OTgsImV4cCI6MTU2MzkxNTc5OH0.qYejtBl1Tcv9IWgp9Ax5FiR6uT_W0VwizHkB-3S7_r0",
+            "description": "Access token that can be used to authenticate against the api"
+          },
+          "expires": {
+            "type": "string",
+            "example": "2019-09-01T22:12:08.882Z",
+            "description": "The expiry date of the access token"
+          }
+        },
+        "required": ["accessToken", "expires"]
+      },
+      "UpdateDeviceDto": {
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "example": "6546710d8bf6bb1a6ad45f81aaf66a4031698825"
+          }
+        },
+        "required": ["deviceId"]
+      }
+    }
+  },
+  "paths": {
+    "/api/measurements": {
+      "get": {
+        "operationId": "getMeasurements",
+        "summary": "Get measurements of the last x hours, grouped per minute",
+        "parameters": [
+          {
+            "name": "hours",
+            "required": false,
+            "in": "query",
+            "example": 1,
+            "schema": { "type": "number" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/MeasurementResult" }
+                }
+              }
+            }
+          },
+          "400": { "description": "Error that is resolvable user side" },
+          "401": { "description": "Invalid or expired token" },
+          "404": { "description": "No device added to this user" },
+          "500": {
+            "description": "Server error that is not resolvable user side"
+          }
+        },
+        "tags": ["Measurements"],
+        "security": [{ "bearer": [] }]
+      }
+    },
+    "/api/measurements/latest": {
+      "get": {
+        "operationId": "getLatest",
+        "summary": "Get latest measurement",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MeasurementResult" }
+              }
+            }
+          },
+          "400": { "description": "Error that is resolvable user side" },
+          "401": { "description": "Invalid or expired token" },
+          "404": { "description": "No device added to this user" },
+          "500": {
+            "description": "Server error that is not resolvable user side"
+          }
+        },
+        "tags": ["Measurements"],
+        "security": [{ "bearer": [] }]
+      }
+    },
+    "/api/users/me": {
+      "get": {
+        "operationId": "getUser",
+        "summary": "Get info of authenticated user",
+        "responses": {
+          "200": {
+            "description": "User info",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "400": { "description": "Error that is resolvable user side" },
+          "500": {
+            "description": "Server error that is not resolvable user side"
+          }
+        },
+        "tags": ["Users"],
+        "security": [{ "bearer": [] }]
+      }
+    },
+    "/api/users": {
+      "post": {
+        "operationId": "addUser",
+        "summary": "Register a new user",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/User" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "400": { "description": "Error that is resolvable user side" },
+          "500": {
+            "description": "Server error that is not resolvable user side"
+          }
+        },
+        "tags": ["Users"]
+      }
+    },
+    "/api/auth": {
+      "post": {
+        "operationId": "login",
+        "summary": "Create an access token",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AccessTokenDto" }
+              }
+            }
+          },
+          "400": { "description": "Error that is resolvable user side" },
+          "401": { "description": "Invalid email or password" },
+          "500": {
+            "description": "Server error that is not resolvable user side"
+          }
+        },
+        "tags": ["Authentication"]
+      }
+    },
+    "/api/device": {
+      "put": {
+        "operationId": "postDevice",
+        "summary": "Update device id associated with user",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateDeviceDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "400": { "description": "Error that is resolvable user side" },
+          "401": { "description": "Invalid or expired token" },
+          "500": {
+            "description": "Server error that is not resolvable user side"
+          }
+        },
+        "tags": ["Device"],
+        "security": [{ "bearer": [] }]
+      },
+      "delete": {
+        "operationId": "deleteDevice",
+        "summary": "Delete associated device from user",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "400": { "description": "Error that is resolvable user side" },
+          "401": { "description": "Invalid or expired token" },
+          "500": {
+            "description": "Server error that is not resolvable user side"
+          }
+        },
+        "tags": ["Device"],
+        "security": [{ "bearer": [] }]
+      }
+    }
+  }
+}

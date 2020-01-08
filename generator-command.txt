@@ -1,0 +1,1 @@
+npx openapi-generator generate -i config/swagger.json -c config/config.json -g typescript-axios
